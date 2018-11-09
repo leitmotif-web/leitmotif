@@ -7,7 +7,7 @@ import xpct.XpctSpec
 import cats.effect.{ContextShift, IO}
 import cats.effect.internals.IOContextShift
 
-trait MktSpec
+trait Spec
 extends TestSuite
 with XpctSpec
 {

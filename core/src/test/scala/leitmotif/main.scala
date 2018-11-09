@@ -3,8 +3,8 @@ package leitmotif
 import cats.implicits._
 import utest._
 
-object LmSpec
-extends MktSpec
+object MainSpec
+extends Spec
 {
   case class Path(headline: Int)
   case class Sub(count: Int)
