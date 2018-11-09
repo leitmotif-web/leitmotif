@@ -17,7 +17,7 @@ extends MktSpec
 
   def h1Path: (Path, El) => (Path, El) = {
     case (path, node @ El.Regular(name, _, _)) =>
-      val name1 = if (name == "h1") "h2" else name
+      val name1 = if (path.headline >= 1 && name == "h1") "h2" else name
       (path, node.copy(name = name1))
     case (path, node) => (path, node)
   }
