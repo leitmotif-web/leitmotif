@@ -17,6 +17,7 @@ releaseProcess := Seq[ReleaseStep](
 val core =
   pro("core")
     .settings(
+        testFrameworks += new TestFramework("utest.runner.Framework"),
       libraryDependencies ++= List(
         "org.typelevel" %% "cats-free" % "1.1.0",
         "io.chrisdavenport" %% "log4cats-slf4j" % "0.1.0",
