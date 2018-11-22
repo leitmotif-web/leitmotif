@@ -23,6 +23,7 @@ val core =
         "io.chrisdavenport" %% "log4cats-slf4j" % "0.1.0",
         "ch.qos.logback" % "logback-classic" % "1.2.3",
         "com.lihaoyi" %% "scalatags" % "0.6.7",
+        "com.github.julien-truffaut" %% "monocle-macro" % "1.5.0-cats",
       )
     )
 

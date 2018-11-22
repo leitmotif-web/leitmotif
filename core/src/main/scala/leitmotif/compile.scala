@@ -6,33 +6,35 @@ import cats.implicits._
 
 object Compile
 {
-  def trans[A, B]
-  (tail: Eval[List[Tree[Lm[A, B]]]])
-  (z: (Context[A, B], Tree[Lm[A, B]]), a: Trans[A, B])
-  : Eval[(Context[A, B], Tree[Lm[A, B]])] = {
-    val (context, tree) = z
+  def trans[S]
+  (tail: Eval[List[Tree[Lm[S]]]])
+  (z: (Env, S, Tree[Lm[S]]), a: Trans[S])
+  : Eval[(Env, S, Tree[Lm[S]])] = {
+    val (env, s, tree) = z
     a match {
       case Trans.Rec() =>
         for {
           sub <- tail
-          (updatedContext, updatedSub) <- sub.foldM[Eval, (Context[A, B], List[Tree[Lm[A, B]]])]((context, Nil)) {
-            case ((c, s0), a) => apply(c)(a).map {
-              case (c1, s1) => (c1, s0 :+ s1)
-            }
+          (updatedEnv, updatedS, updatedSub) <- sub.foldM[Eval, (Env, S, List[Tree[Lm[S]]])]((env, s, Nil)) {
+            case ((e, s0, sub0), a) =>
+              apply(e, s0)(a).map {
+                case (e1, s1, sub1) => (e1, s1, sub0 :+ sub1)
+              }
           }
-        } yield (updatedContext, Cofree(tree.head, Eval.now(updatedSub)))
+        } yield (updatedEnv, updatedS, Cofree(tree.head, Eval.now(updatedSub)))
       case Trans.Path(f) =>
-        val (path, node) = f(context.path, tree.head.node)
-        val updatedContext = context.copy(path = path)
+        val (_, (s1, node), _) = f.run(env, (s, tree.head.node)).value
         val updatedTree = tree.copy(head = tree.head.copy(node = node))
-        Eval.now((updatedContext, updatedTree))
-      case _ =>
-        ???
+        Eval.now((env, s1, updatedTree))
+      case Trans.Sub(f) =>
+        val (_, (s1, node), _) = f.run(env, (s, tree.head.node)).value
+        val updatedTree = tree.copy(head = tree.head.copy(node = node))
+        Eval.now((env, s1, updatedTree))
     }
   }
 
-  def apply[A, B](context: Context[A, B]): Tree[Lm[A, B]] => Eval[(Context[A, B], Tree[Lm[A, B]])] = {
+  def apply[S](env: Env, s: S): Tree[Lm[S]] => Eval[(Env, S, Tree[Lm[S]])] = {
     case tree @ Cofree(head, tail) =>
-      head.trans.foldM((context, tree))(trans(tail))
+      head.trans.foldM((env, s, tree))(trans(tail))
   }
 }

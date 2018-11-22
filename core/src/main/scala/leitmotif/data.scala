@@ -2,7 +2,7 @@ package leitmotif
 
 case class Style()
 
-case class Attrs()
+case class Attrs(attrs: Map[String, String])
 
 sealed trait El
 
@@ -17,35 +17,39 @@ object El
   def apply(name: String, style: Style, attrs: Attrs): El = Regular(name, style, attrs)
 }
 
-case class ContextPre()
+case class EnvPre()
 
-case class Context[A, B](path: A, sub: B)
+case class PathEnv()
 
-sealed trait Trans[A, B]
+case class SubEnv()
+
+case class Env(path: PathEnv, sub: SubEnv)
+
+sealed trait Trans[S]
 
 object Trans
 {
-  case class Rec[A, B]()
-  extends Trans[A, B]
+  case class Rec[S]()
+  extends Trans[S]
 
-  case class Path[A, B](f: (A, El) => (A, El))
-  extends Trans[A, B]
+  case class Path[S](f: LmS[S, Unit])
+  extends Trans[S]
 
-  case class Sub[A, B](f: (B, El) => (B, El))
-  extends Trans[A, B]
+  case class Sub[S](f: LmS[S, Unit])
+  extends Trans[S]
 }
 
-case class Lm[A, B](node: El, trans: List[Trans[A, B]])
+case class Lm[S](node: El, trans: List[Trans[S]])
 {
-  def path(f: (A, El) => (A, El)): Lm[A, B] =
-    copy(trans = Trans.Path[A, B](f) :: trans)
+  def path(f: LmS[S, Unit]): Lm[S] =
+    copy(trans = Trans.Path[S](f) :: trans)
 
-  def sub(f: (B, El) => (B, El)): Lm[A, B] =
-    copy(trans = trans :+ Trans.Sub[A, B](f))
+  def sub(f: LmS[S, Unit]): Lm[S] =
+    copy(trans = trans :+ Trans.Sub[S](f))
 }
 
 object Lm
 {
-  def apply[A, B](node: El): Lm[A, B] =
+  def apply[S](node: El): Lm[S] =
     Lm(node, List(Trans.Rec()))
 }
