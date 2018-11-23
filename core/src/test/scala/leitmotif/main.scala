@@ -42,14 +42,14 @@ extends Spec
     } yield ()
 
   def div(tail: Tree*): Tree =
-    Leitmotif.node[MainS](Lm(El("div", Style(), Attrs(Map()))))(tail: _*)
+    Leitmotif.node(Lm.plain("div"))(tail: _*)
 
 
   def tree: Tree =
-    Leitmotif.node[MainS](
-      Lm(El("section", Style(), Attrs(Map()))).path(recordHeadline).sub(subCountClass)
+    Leitmotif.node(
+      Lm.plain("section").path(recordHeadline).sub(subCountClass)
     )(
-      Leitmotif.node[MainS](Lm(El("h1", Style(), Attrs(Map()))).path(adaptHeadline))(
+      Leitmotif.node(Lm.plain("h1").path(adaptHeadline))(
         div(div(div()), div(div()))
       )
     )

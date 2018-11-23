@@ -50,6 +50,9 @@ case class Lm[S](node: El, trans: List[Trans[S]])
 
 object Lm
 {
-  def apply[S](node: El): Lm[S] =
+  def default[S](node: El): Lm[S] =
     Lm(node, List(Trans.Rec()))
+
+  def plain[S](tag: String): Lm[S] =
+    default(El(tag, Style(), Attrs(Map())))
 }
