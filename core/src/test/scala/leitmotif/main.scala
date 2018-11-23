@@ -57,8 +57,8 @@ extends Spec
   def test1 = {
     val result = Compile(Env(PathEnv(), SubEnv()), MainS(Path(0), Sub(0)))(tree)
     val (_, _, tree1) = result.value
-    val tree2 = Render(tree1)
-    println(tree2.forceAll)
+    val tree2 = Render.text(tree1)
+    println(tree2)
     assert(1 == 1)
   }
 

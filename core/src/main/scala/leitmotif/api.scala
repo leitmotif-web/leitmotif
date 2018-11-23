@@ -5,10 +5,26 @@ import cats.data.RWS
 import cats.free.Cofree
 import cats.implicits._
 
+object RenderText
+{
+  def node[S]: El => String = {
+    case El.Regular(name, _, attrs) =>
+      s"$name ${attrs.attrs.getOrElse("class", "")}"
+    case El.Pseudo() =>
+      "pseudo"
+  }
+
+  def level[S](prefix: String)(tree: Tree[Lm[S]]): Eval[List[String]] =
+    tree.tail.flatMap(_.flatTraverse(level(s"$prefix- "))).map(s"$prefix${node(tree.head.node)}" :: _)
+}
+
 object Render
 {
   def apply[S](tree: Tree[Lm[S]]): Tree[El] =
     tree.map(_.node)
+
+  def text[S](tree: Tree[Lm[S]]): String =
+    RenderText.level("")(tree).value.mkString("\n")
 }
 
 object Leitmotif
