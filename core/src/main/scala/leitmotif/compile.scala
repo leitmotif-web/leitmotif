@@ -1,43 +1,42 @@
 package leitmotif
 
 import cats.Eval
+import cats.data.StateT
 import cats.free.Cofree
 import cats.implicits._
 import monocle.macros.syntax.lens._
 
+import LmIState.LmIS
+
 object Compile
 {
-  def trans[S]
-  (tail: Eval[List[Tree[Lm[S]]]])
-  (z: (Env, S, Tree[Lm[S]]), a: Trans[S])
-  : Eval[(Env, S, Tree[Lm[S]])] = {
-    val (env, s, tree) = z
-    a match {
-      case Trans.Rec() =>
+  def consumer[S](trans: List[LmS[S, Unit]]): LmIS[S, Unit] =
+    StateT {
+      case LmIState(state0, env, log0) =>
         for {
-          sub <- tail
-          (updatedEnv, updatedS, updatedSub) <- sub.foldM[Eval, (Env, S, List[Tree[Lm[S]]])]((env, s, Nil)) {
-            case ((e, s0, sub0), a) =>
-              apply(e, s0)(a).map {
-                case (e1, s1, sub1) => (e1, s1, sub0 :+ sub1)
-              }
-          }
-        } yield (updatedEnv, updatedS, Cofree(tree.head, Eval.now(updatedSub)))
-      case Trans.PostRec() =>
-        Eval.now((env.lens(_.sub.count).modify(_ + 1), s, tree))
-      case Trans.Path(f) =>
-        val (_, (s1, node), _) = f.run(env, (s, tree.head.node)).value
-        val updatedTree = tree.copy(head = tree.head.copy(node = node))
-        Eval.now((env, s1, updatedTree))
-      case Trans.Sub(f) =>
-        val (_, (s1, node), _) = f.run(env, (s, tree.head.node)).value
-        val updatedTree = tree.copy(head = tree.head.copy(node = node))
-        Eval.now((env, s1, updatedTree))
+          (log1, state1, a) <- trans.sequence.run(env, state0)
+        } yield (LmIState(state1, env, log0 ++ log1), ())
     }
+
+  def run[S]: Tree[Lm[S]] => LmIS[S, Tree[Lm[S]]] = {
+    case tree @ Cofree(head, tail) =>
+      for {
+        _ <- LmIS.setTree(tree)
+        _ <- consumer(head.preTrans)
+        tree1 <- LmIS.tree
+        tail0 <- LmIS.liftF(tail)
+        tail1 <- tail0.traverse(run)
+        _ <- LmIS.setTree(tree1)
+        _ <- LmIS.modifyEnv(_.lens(_.sub.count).modify(_ + tail0.length))
+        _ <- LmIS.modifyTree[S](_.copy(tail = Eval.now(tail1)))
+        _ <- consumer(head.postTrans)
+        tree2 <- LmIS.tree
+      } yield tree2
   }
 
-  def apply[S](env: Env, s: S): Tree[Lm[S]] => Eval[(Env, S, Tree[Lm[S]])] = {
-    case tree @ Cofree(head, tail) =>
-      head.trans.foldM((env, s, tree))(trans(tail))
+  def apply[S](env: Env, s: S)(tree: Tree[Lm[S]]): Eval[(S, Tree[Lm[S]])] = {
+    for {
+      (LmIState(LmState(s1, tree1), _, _), _) <- run(tree).run(LmIState(LmState(s, tree), env, Vector.empty))
+    } yield (s1, tree1)
   }
 }

@@ -1,5 +1,8 @@
 package leitmotif
 
+import monocle.Lens
+import monocle.macros.GenLens
+
 case class Style()
 
 case class Attrs(attrs: Map[String, String])
@@ -58,20 +61,22 @@ object Trans
   extends Trans[S]
 }
 
-case class Lm[S](node: El, pre: List[LmS[S, Unit]], post: List[LmS[S, Unit]], trans: List[Trans[S]])
+case class Lm[S](node: El, preTrans: List[LmS[S, Unit]], postTrans: List[LmS[S, Unit]])
 {
-  def path(f: LmS[S, Unit]): Lm[S] =
-    copy(trans = Trans.Path[S](f) :: trans)
+  def pre(f: LmS[S, Unit]): Lm[S] =
+    copy(preTrans = f :: preTrans)
 
-  def sub(f: LmS[S, Unit]): Lm[S] =
-    copy(trans = trans :+ Trans.Sub[S](f))
+  def post(f: LmS[S, Unit]): Lm[S] =
+    copy(postTrans = f :: postTrans)
 }
 
 object Lm
 {
   def default[S](node: El): Lm[S] =
-    Lm(node, Nil, Nil, List(Trans.Rec(), Trans.PostRec()))
+    Lm(node, Nil, Nil)
 
   def plain[S](tag: String): Lm[S] =
     default(El.tag(tag))
+
+  def nodeLens[S]: Lens[Lm[S], El] = GenLens[Lm[S]](_.node)
 }

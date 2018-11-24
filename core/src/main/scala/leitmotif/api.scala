@@ -33,16 +33,16 @@ object Leitmotif
     Cofree(head, Eval.now(tail.toList))
 
   def inspectS[S, A](f: S => A): LmS[S, A] =
-    RWS.inspect { case (s, _) => f(s) }
+    RWS.inspect(f compose LmState.sLens.get)
 
   def modifyS[S](f: S => S): LmS[S, Unit] =
-    RWS.modify { case (s, el) => (f(s), el) }
+    RWS.modify(LmState.sLens.modify(f))
 
   def modifyEl[S](f: El => El): LmS[S, Unit] =
-    RWS.modify { case (s, el) => (s, f(el)) }
+    RWS.modify(LmState.nodeLens.modify(f))
 
   def el[S]: LmS[S, El] =
-    RWS.inspect(_._2)
+    RWS.inspect(LmState.nodeLens.get)
 
   def ask[S]: LmS[S, Env] =
     RWS.ask

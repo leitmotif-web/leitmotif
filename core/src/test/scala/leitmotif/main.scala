@@ -47,18 +47,21 @@ extends Spec
 
   def tree: Tree =
     Leitmotif.node(
-      Lm.plain("section").path(recordHeadline).sub(subCountClass)
+      Lm.plain("section").pre(recordHeadline).post(subCountClass)
     )(
-      Leitmotif.node(Lm.plain("h1").path(adaptHeadline))(
+      Leitmotif.node(Lm.plain("h1").pre(adaptHeadline))(
         div(div(div()), div(div()))
       )
     )
 
   def test1 = {
     val result = Compile(Env(PathEnv(), SubEnv(0)), MainS(Path(0), Sub(0)))(tree)
-    val (_, _, tree1) = result.value
-    assert(tree1.head.node.attr("class") == Some("sub-7"))
-    assert(tree1.tail.value.headOption.map(_.head.node.name) == Some("h2"))
+    val (_, tree1) = result.value
+    println(Render.text(tree1))
+    val cls = tree1.head.node.attr("class")
+    assert(cls == Some("sub-6"))
+    val name = tree1.tail.value.headOption.map(_.head.node.name)
+    assert(name == Some("h2"))
   }
 
   def tests = Tests("foo" - test1)
