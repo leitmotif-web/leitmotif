@@ -21,10 +21,9 @@ extends Spec
     for {
       headline <- Leitmotif.inspectS[MainS, Int](_.path.headline)
       _ <- Leitmotif.modifyEl {
-        case node @ El.Regular(name, _, _) =>
+        case node @ El(name, _, _, _) =>
           val name1 = if (headline >= 1 && name == "h1") "h2" else name
           node.copy(name = name1)
-        case a => a
       }
     } yield ()
 
@@ -35,7 +34,7 @@ extends Spec
     for {
       env <- Leitmotif.ask
       _ <- Leitmotif.modifyEl {
-        case node @ El.Regular(_, _, _) =>
+        case node @ El(_, _, _, ElMeta.Regular()) =>
           val count = env.sub.count
           node.copy(attrs = Attrs(Map("class" -> s"sub-$count")))
         case a => a
@@ -58,9 +57,8 @@ extends Spec
   def test1 = {
     val result = Compile(Env(PathEnv(), SubEnv(0)), MainS(Path(0), Sub(0)))(tree)
     val (_, _, tree1) = result.value
-    val tree2 = Render.text(tree1)
-    println(tree2)
-    assert(1 == 1)
+    assert(tree1.head.node.attr("class") == Some("sub-7"))
+    assert(tree1.tail.value.headOption.map(_.head.node.name) == Some("h2"))
   }
 
   def tests = Tests("foo" - test1)

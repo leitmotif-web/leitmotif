@@ -4,17 +4,33 @@ case class Style()
 
 case class Attrs(attrs: Map[String, String])
 
-sealed trait El
+object Attrs
+{
+  def empty: Attrs =
+    Attrs(Map())
+}
+
+sealed trait ElMeta
+
+object ElMeta
+{
+  case class Regular()
+  extends ElMeta
+
+  case class Pseudo()
+  extends ElMeta
+}
+
+case class El(name: String, style: Style, attrs: Attrs, meta: ElMeta)
+{
+  def attr(name: String): Option[String] =
+    attrs.attrs.get(name)
+}
 
 object El
 {
-  case class Regular(name: String, style: Style, attrs: Attrs)
-  extends El
-
-  case class Pseudo()
-  extends El
-
-  def apply(name: String, style: Style, attrs: Attrs): El = Regular(name, style, attrs)
+  def tag(name: String): El =
+    El(name, Style(), Attrs.empty, ElMeta.Regular())
 }
 
 case class EnvPre()
@@ -42,7 +58,7 @@ object Trans
   extends Trans[S]
 }
 
-case class Lm[S](node: El, trans: List[Trans[S]])
+case class Lm[S](node: El, pre: List[LmS[S, Unit]], post: List[LmS[S, Unit]], trans: List[Trans[S]])
 {
   def path(f: LmS[S, Unit]): Lm[S] =
     copy(trans = Trans.Path[S](f) :: trans)
@@ -54,8 +70,8 @@ case class Lm[S](node: El, trans: List[Trans[S]])
 object Lm
 {
   def default[S](node: El): Lm[S] =
-    Lm(node, List(Trans.Rec(), Trans.PostRec()))
+    Lm(node, Nil, Nil, List(Trans.Rec(), Trans.PostRec()))
 
   def plain[S](tag: String): Lm[S] =
-    default(El(tag, Style(), Attrs(Map())))
+    default(El.tag(tag))
 }

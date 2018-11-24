@@ -8,9 +8,9 @@ import cats.implicits._
 object RenderText
 {
   def node[S]: El => String = {
-    case El.Regular(name, _, attrs) =>
+    case El(name, _, attrs, ElMeta.Regular()) =>
       s"$name ${attrs.attrs.getOrElse("class", "")}"
-    case El.Pseudo() =>
+    case El(_, _, _, ElMeta.Pseudo()) =>
       "pseudo"
   }
 
