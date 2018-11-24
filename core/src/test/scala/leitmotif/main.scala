@@ -4,6 +4,17 @@ import cats.implicits._
 import monocle.macros.syntax.lens._
 import utest._
 
+import Tags._
+
+object Tags
+{
+  def div[S](tail: Tree[Lm[S]]*): Tree[Lm[S]] =
+    Leitmotif.node(Lm.plain("div"))(tail: _*)
+
+  def divWithClass[S](cls: String)(tail: Tree[Lm[S]]*): Tree[Lm[S]] =
+    Leitmotif.node(Lm.withClass("div", cls))(tail: _*)
+}
+
 object MainSpec
 extends Spec
 {
@@ -36,18 +47,18 @@ extends Spec
       _ <- Leitmotif.modifyEl {
         case node @ El(_, _, _, ElMeta.Regular()) =>
           val count = env.sub.count
-          node.copy(attrs = Attrs(Map("class" -> s"sub-$count")))
+          val cls = node.attr("class").getOrElse("")
+          node.copy(attrs = Attrs(Map("class" -> s"sub-$count $cls")))
         case a => a
       }
     } yield ()
 
-  def div(tail: Tree*): Tree =
-    Leitmotif.node(Lm.plain("div"))(tail: _*)
-
+  def shellCore[S]: LmS[S, Unit] =
+    Leitmotif.modifyTree(a => divWithClass("shell")(divWithClass("core")(a)))
 
   def tree: Tree =
     Leitmotif.node(
-      Lm.plain("section").pre(recordHeadline).post(subCountClass)
+      Lm.plain("section").pre(recordHeadline).post(subCountClass).post(shellCore)
     )(
       Leitmotif.node(Lm.plain("h1").pre(adaptHeadline))(
         div(div(div()), div(div()))
@@ -59,8 +70,13 @@ extends Spec
     val (_, tree1) = result.value
     println(Render.text(tree1))
     val cls = tree1.head.node.attr("class")
-    assert(cls == Some("sub-6"))
-    val name = tree1.tail.value.headOption.map(_.head.node.name)
+    assert(cls == Some("sub-6 shell"))
+    val name =
+      for {
+        sub1 <- tree1.tail.value.headOption
+        sub2 <- sub1.tail.value.headOption
+        sub3 <- sub2.tail.value.headOption
+      } yield sub3.head.node.name
     assert(name == Some("h2"))
   }
 

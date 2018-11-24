@@ -41,6 +41,9 @@ object Leitmotif
   def modifyEl[S](f: El => El): LmS[S, Unit] =
     RWS.modify(LmState.nodeLens.modify(f))
 
+  def modifyTree[S](f: Tree[Lm[S]] => Tree[Lm[S]]): LmS[S, Unit] =
+    RWS.modify(LmState.treeLens.modify(f))
+
   def el[S]: LmS[S, El] =
     RWS.inspect(LmState.nodeLens.get)
 

@@ -78,5 +78,8 @@ object Lm
   def plain[S](tag: String): Lm[S] =
     default(El.tag(tag))
 
+  def withClass[S](tag: String, cls: String): Lm[S] =
+    default(El.tag(tag).copy(attrs = Attrs(Map("class" -> cls))))
+
   def nodeLens[S]: Lens[Lm[S], El] = GenLens[Lm[S]](_.node)
 }
