@@ -33,9 +33,10 @@ extends Spec
 
   def subCountClass: LmS[MainS, Unit] =
     for {
-      count <- Leitmotif.inspectS((_: MainS).sub.count)
+      env <- Leitmotif.ask
       _ <- Leitmotif.modifyEl {
         case node @ El.Regular(_, _, _) =>
+          val count = env.sub.count
           node.copy(attrs = Attrs(Map("class" -> s"sub-$count")))
         case a => a
       }
@@ -55,7 +56,7 @@ extends Spec
     )
 
   def test1 = {
-    val result = Compile(Env(PathEnv(), SubEnv()), MainS(Path(0), Sub(0)))(tree)
+    val result = Compile(Env(PathEnv(), SubEnv(0)), MainS(Path(0), Sub(0)))(tree)
     val (_, _, tree1) = result.value
     val tree2 = Render.text(tree1)
     println(tree2)

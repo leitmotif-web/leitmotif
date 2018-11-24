@@ -21,7 +21,7 @@ case class EnvPre()
 
 case class PathEnv()
 
-case class SubEnv()
+case class SubEnv(count: Int)
 
 case class Env(path: PathEnv, sub: SubEnv)
 
@@ -30,6 +30,9 @@ sealed trait Trans[S]
 object Trans
 {
   case class Rec[S]()
+  extends Trans[S]
+
+  case class PostRec[S]()
   extends Trans[S]
 
   case class Path[S](f: LmS[S, Unit])
@@ -51,7 +54,7 @@ case class Lm[S](node: El, trans: List[Trans[S]])
 object Lm
 {
   def default[S](node: El): Lm[S] =
-    Lm(node, List(Trans.Rec()))
+    Lm(node, List(Trans.Rec(), Trans.PostRec()))
 
   def plain[S](tag: String): Lm[S] =
     default(El(tag, Style(), Attrs(Map())))

@@ -43,4 +43,7 @@ object Leitmotif
 
   def el[S]: LmS[S, El] =
     RWS.inspect(_._2)
+
+  def ask[S]: LmS[S, Env] =
+    RWS.ask
 }

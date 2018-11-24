@@ -3,6 +3,7 @@ package leitmotif
 import cats.Eval
 import cats.free.Cofree
 import cats.implicits._
+import monocle.macros.syntax.lens._
 
 object Compile
 {
@@ -22,6 +23,8 @@ object Compile
               }
           }
         } yield (updatedEnv, updatedS, Cofree(tree.head, Eval.now(updatedSub)))
+      case Trans.PostRec() =>
+        Eval.now((env.lens(_.sub.count).modify(_ + 1), s, tree))
       case Trans.Path(f) =>
         val (_, (s1, node), _) = f.run(env, (s, tree.head.node)).value
         val updatedTree = tree.copy(head = tree.head.copy(node = node))
