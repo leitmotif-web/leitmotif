@@ -20,29 +20,14 @@ object LmState
   def nodeLens[S]: Lens[LmState[S], El] = treeLens.composeLens(headLens[S]).composeLens(Lm.nodeLens)
 }
 
-case class LmIState[S](state: LmState[S], env: Env, log: Vector[String])
+case class LmIState[S](state: S, env: Env, log: Vector[String])
 
 object LmIState
 {
   type LmIS[S, A] = State[LmIState[S], A]
 
-  def lmLens[S]: Lens[LmIState[S], LmState[S]] =
-    GenLens[LmIState[S]](_.state)
-
-  def treeLens[S]: Lens[LmIState[S], Tree[Lm[S]]] =
-    lmLens.composeLens(LmState.treeLens)
-
   def envLens[S]: Lens[LmIState[S], Env] =
     GenLens[LmIState[S]](_.env)
-
-  def tree[S]: LmIS[S, Tree[Lm[S]]] =
-    State.inspect(treeLens.get)
-
-  def setTree[S](tree: Tree[Lm[S]]): LmIS[S, Unit] =
-    State.modify(treeLens.set(tree))
-
-  def modifyTree[S](f: Tree[Lm[S]] => Tree[Lm[S]]): LmIS[S, Unit] =
-    State.modify(treeLens.modify(f))
 
   def liftF[S, A](fa: Eval[A]): LmIS[S, A] =
     StateT.liftF(fa)

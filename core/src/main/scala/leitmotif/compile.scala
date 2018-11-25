@@ -10,33 +10,28 @@ import LmIState.LmIS
 
 object Compile
 {
-  def consumer[S](trans: List[LmS[S, Unit]]): LmIS[S, Unit] =
+  def consumer[S](trans: List[LmS[S, Unit]])(tree0: Tree[Lm[S]]): LmIS[S, Tree[Lm[S]]] =
     StateT {
       case LmIState(state0, env, log0) =>
         for {
-          (log1, state1, a) <- trans.sequence.run(env, state0)
-        } yield (LmIState(state1, env, log0 ++ log1), ())
+          (log1, LmState(state1, tree1), out) <- trans.sequence.run(env, LmState(state0, tree0))
+        } yield (LmIState(state1, env, log0 ++ log1), tree1)
     }
 
   def run[S]: Tree[Lm[S]] => LmIS[S, Tree[Lm[S]]] = {
-    case tree @ Cofree(head, tail) =>
+    case tree @ Cofree(head, _) =>
       for {
-        _ <- LmIS.setTree(tree)
-        _ <- consumer(head.preTrans)
-        tree1 <- LmIS.tree
-        tail0 <- LmIS.liftF(tail)
+        tree1 <- consumer(head.preTrans)(tree)
+        tail0 <- LmIS.liftF(tree1.tail)
         tail1 <- tail0.traverse(run)
-        _ <- LmIS.setTree(tree1)
         _ <- LmIS.modifyEnv(_.lens(_.sub.count).modify(_ + tail0.length))
-        _ <- LmIS.modifyTree[S](_.copy(tail = Eval.now(tail1)))
-        _ <- consumer(head.postTrans)
-        tree2 <- LmIS.tree
+        tree2 <- consumer(head.postTrans)(tree1.copy(tail = Eval.now(tail1)))
       } yield tree2
   }
 
   def apply[S](env: Env, s: S)(tree: Tree[Lm[S]]): Eval[(S, Tree[Lm[S]])] = {
     for {
-      (LmIState(LmState(s1, tree1), _, _), _) <- run(tree).run(LmIState(LmState(s, tree), env, Vector.empty))
+      (LmIState(s1, _, _), tree1) <- run(tree).run(LmIState(s, env, Vector.empty))
     } yield (s1, tree1)
   }
 }
