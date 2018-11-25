@@ -54,19 +54,19 @@ object Trans
   case class PostRec[S]()
   extends Trans[S]
 
-  case class Path[S](f: LmS[S, Unit])
+  case class Path[S](f: NodeS[S, Unit])
   extends Trans[S]
 
-  case class Sub[S](f: LmS[S, Unit])
+  case class Sub[S](f: NodeS[S, Unit])
   extends Trans[S]
 }
 
-case class Lm[S](node: El, preTrans: List[LmS[S, Unit]], postTrans: List[LmS[S, Unit]])
+case class Lm[S](node: El, preTrans: List[NodeS[S, Unit]], postTrans: List[NodeS[S, Unit]])
 {
-  def pre(f: LmS[S, Unit]): Lm[S] =
+  def pre(f: NodeS[S, Unit]): Lm[S] =
     copy(preTrans = f :: preTrans)
 
-  def post(f: LmS[S, Unit]): Lm[S] =
+  def post(f: NodeS[S, Unit]): Lm[S] =
     copy(postTrans = f :: postTrans)
 }
 

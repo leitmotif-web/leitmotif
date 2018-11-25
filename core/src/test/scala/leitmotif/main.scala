@@ -26,10 +26,10 @@ extends Spec
   type Node = Lm[MainS]
   type Tree = leitmotif.Tree[Node]
 
-  def recordHeadline: LmS[MainS, Unit] =
+  def recordHeadline: NodeS[MainS, Unit] =
     Leitmotif.modifyS((_: MainS).lens(_.path.headline).modify(_ + 1))
 
-  def adaptHeadline: LmS[MainS, Unit] =
+  def adaptHeadline: NodeS[MainS, Unit] =
     for {
       headline <- Leitmotif.inspectS[MainS, Int](_.path.headline)
       _ <- Leitmotif.modifyEl {
@@ -39,10 +39,10 @@ extends Spec
       }
     } yield ()
 
-  def subCountInc: LmS[MainS, Unit] =
+  def subCountInc: NodeS[MainS, Unit] =
     Leitmotif.modifyS(_.lens(_.sub.count).modify(_ + 1))
 
-  def subCountClass: LmS[MainS, Unit] =
+  def subCountClass: NodeS[MainS, Unit] =
     for {
       env <- Leitmotif.ask
       _ <- Leitmotif.modifyEl {
@@ -54,10 +54,10 @@ extends Spec
       }
     } yield ()
 
-  def shellCore[S]: LmS[S, Unit] =
+  def shellCore[S]: NodeS[S, Unit] =
     Leitmotif.modifyTree(a => divWithClass("shell")(divWithClass("core")(a)))
 
-  def innerShellCore[S]: LmS[S, Unit] =
+  def innerShellCore[S]: NodeS[S, Unit] =
     for {
       tail <- Leitmotif.tail
       _ <- Leitmotif.modifyTree[S](
