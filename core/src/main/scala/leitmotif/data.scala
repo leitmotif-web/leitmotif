@@ -54,6 +54,7 @@ case class Lm[S](node: El, preTrans: List[NodeS[S, Lm[S], Unit]], postTrans: Lis
 }
 
 object Lm
+extends LmInstances
 {
   def default[S](node: El): Lm[S] =
     Lm(node, Nil, Nil)
@@ -65,4 +66,16 @@ object Lm
     default(El.tag(tag).copy(attrs = Attrs(Map("class" -> cls))))
 
   def nodeLens[S]: Lens[Lm[S], El] = GenLens[Lm[S]](_.node)
+}
+
+trait LmInstances
+{
+  implicit def Transformations_Lm[S]: Transformations[S, Lm[S]] =
+    new Transformations[S, Lm[S]] {
+      def pre(a: Lm[S]): List[NodeS[S, Lm[S], Unit]] =
+        a.preTrans
+
+      def post(a: Lm[S]): List[NodeS[S, Lm[S], Unit]] =
+        a.postTrans
+    }
 }
