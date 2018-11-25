@@ -1,5 +1,6 @@
 package leitmotif
 
+import cats.Eval
 import cats.implicits._
 import monocle.macros.syntax.lens._
 import utest._
@@ -56,11 +57,19 @@ extends Spec
   def shellCore[S]: LmS[S, Unit] =
     Leitmotif.modifyTree(a => divWithClass("shell")(divWithClass("core")(a)))
 
+  def innerShellCore[S]: LmS[S, Unit] =
+    for {
+      tail <- Leitmotif.tail
+      _ <- Leitmotif.modifyTree[S](
+        _.copy(tail = Eval.now(List(divWithClass("shell")(divWithClass("core")(tail: _*)))))
+      )
+    } yield ()
+
   def tree: Tree =
     Leitmotif.node(
       Lm.plain("section").pre(recordHeadline).post(subCountClass).post(shellCore)
     )(
-      Leitmotif.node(Lm.plain("h1").pre(adaptHeadline))(
+      Leitmotif.node(Lm.plain("h1").pre(adaptHeadline).post(innerShellCore))(
         div(div(div()), div(div()))
       )
     )

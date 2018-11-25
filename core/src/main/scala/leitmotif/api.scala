@@ -1,7 +1,7 @@
 package leitmotif
 
 import cats.Eval
-import cats.data.RWS
+import cats.data.{RWS, IRWST}
 import cats.free.Cofree
 import cats.implicits._
 
@@ -41,6 +41,9 @@ object Leitmotif
   def modifyEl[S](f: El => El): LmS[S, Unit] =
     RWS.modify(LmState.nodeLens.modify(f))
 
+  def inspectTreeF[S, A](f: Tree[Lm[S]] => Eval[A]): LmS[S, A] =
+    IRWST.inspectF(f compose LmState.treeLens.get)
+
   def modifyTree[S](f: Tree[Lm[S]] => Tree[Lm[S]]): LmS[S, Unit] =
     RWS.modify(LmState.treeLens.modify(f))
 
@@ -49,4 +52,7 @@ object Leitmotif
 
   def ask[S]: LmS[S, Env] =
     RWS.ask
+
+  def tail[S]: LmS[S, List[Tree[Lm[S]]]] =
+    inspectTreeF(_.tail)
 }

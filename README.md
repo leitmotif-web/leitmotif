@@ -11,3 +11,4 @@ stateful HTML tree generation
 
 ## structure manipulation
 * inject intermediate nodes, like shell/core
+* inject shell/core as children of the attached node
