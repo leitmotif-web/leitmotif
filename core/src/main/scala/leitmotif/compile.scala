@@ -25,7 +25,7 @@ object Compile
         tail0 <- LmIS.liftF(tree1.tail)
         tail1 <- tail0.traverse(run)
         _ <- LmIS.modifyEnv(_.lens(_.sub.count).modify(_ + tail0.length))
-        tree2 <- consumer(head.postTrans)(tree1.copy(tail = Eval.now(tail1)))
+        tree2 <- consumer(head.postTrans)(Tree.mount(tail1)(tree1))
       } yield tree2
   }
 
