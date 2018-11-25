@@ -9,10 +9,10 @@ import Tags._
 
 object Tags
 {
-  def div[S](tail: Tree[Lm[S]]*): Tree[Lm[S]] =
+  def div[S](tail: Tree[Lm[Env, S]]*): Tree[Lm[Env, S]] =
     Leitmotif.node(Lm.plain("div"))(tail: _*)
 
-  def divWithClass[S](cls: String)(tail: Tree[Lm[S]]*): Tree[Lm[S]] =
+  def divWithClass[S](cls: String)(tail: Tree[Lm[Env, S]]*): Tree[Lm[Env, S]] =
     Leitmotif.node(Lm.withClass("div", cls))(tail: _*)
 }
 
@@ -23,16 +23,16 @@ extends Spec
   case class Sub(count: Int)
   case class MainS(path: Path, sub: Sub)
 
-  type Node = Lm[MainS]
+  type Node = Lm[Env, MainS]
   type Tree = leitmotif.Tree[Node]
-  type LmNodeS[S, A] = NodeS[S, Lm[S], A]
+  type LmNodeS[A] = NodeS[Env, MainS, Lm[Env, MainS], A]
 
-  def recordHeadline: LmNodeS[MainS, Unit] =
+  def recordHeadline: LmNodeS[Unit] =
     Leitmotif.modifyS((_: MainS).lens(_.path.headline).modify(_ + 1))
 
-  def adaptHeadline: LmNodeS[MainS, Unit] =
+  def adaptHeadline: LmNodeS[Unit] =
     for {
-      headline <- Leitmotif.inspectS[MainS, Lm[MainS], Int](_.path.headline)
+      headline <- Leitmotif.inspectS[Env, MainS, Lm[Env, MainS], Int](_.path.headline)
       _ <- Leitmotif.modifyEl {
         case node @ El(name, _, _, _) =>
           val name1 = if (headline >= 1 && name == "h1") "h2" else name
@@ -40,10 +40,10 @@ extends Spec
       }
     } yield ()
 
-  def subCountInc: LmNodeS[MainS, Unit] =
+  def subCountInc: LmNodeS[Unit] =
     Leitmotif.modifyS(_.lens(_.sub.count).modify(_ + 1))
 
-  def subCountClass: LmNodeS[MainS, Unit] =
+  def subCountClass: LmNodeS[Unit] =
     for {
       env <- Leitmotif.ask
       _ <- Leitmotif.modifyEl {
@@ -55,13 +55,13 @@ extends Spec
       }
     } yield ()
 
-  def shellCore[S]: LmNodeS[S, Unit] =
+  def shellCore: LmNodeS[Unit] =
     Leitmotif.modifyTree(a => divWithClass("shell")(divWithClass("core")(a)))
 
-  def innerShellCore[S]: LmNodeS[S, Unit] =
+  def innerShellCore: LmNodeS[Unit] =
     for {
       tail <- Leitmotif.tail
-      _ <- Leitmotif.modifyTree[S, Lm[S]](
+      _ <- Leitmotif.modifyTree[Env, MainS, Lm[Env, MainS]](
         _.copy(tail = Eval.now(List(divWithClass("shell")(divWithClass("core")(tail: _*)))))
       )
     } yield ()
@@ -75,8 +75,8 @@ extends Spec
       )
     )
 
-  def test1 = {
-    val result = Compile(Env(PathEnv(), SubEnv(0)), MainS(Path(0), Sub(0)))(tree)
+  def reference = {
+    val result = Compile.default(Env(PathEnv(), SubEnv(0)), MainS(Path(0), Sub(0)))(tree)
     val (_, tree1) = result.value
     println(Render.text(tree1))
     val cls = tree1.head.node.attr("class")
@@ -90,5 +90,5 @@ extends Spec
     assert(name == Some("h2"))
   }
 
-  def tests = Tests("foo" - test1)
+  def tests = Tests("adapt headline to section nesting, count children, inject shell/core" - reference)
 }

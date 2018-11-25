@@ -9,29 +9,39 @@ case class NodeState[S, N](s: S, tree: Tree[N])
 
 object NodeS
 {
-  type NodeS[S, N, A] = RWS[Env, Vector[String], NodeState[S, N], A]
+  type NodeS[E, S, N, A] = RWS[E, Vector[String], NodeState[S, N], A]
 
-  def treeLens[S, N]: Lens[NodeState[S, N], Tree[N]] = GenLens[NodeState[S, N]](_.tree)
+  def treeLens[E, S, N]: Lens[NodeState[S, N], Tree[N]] = GenLens[NodeState[S, N]](_.tree)
 
-  def sLens[S, N]: Lens[NodeState[S, N], S] = GenLens[NodeState[S, N]](_.s)
+  def sLens[E, S, N]: Lens[NodeState[S, N], S] = GenLens[NodeState[S, N]](_.s)
 
-  def headLens[S, N]: Lens[Tree[Lm[S]], Lm[S]] = GenLens[Tree[Lm[S]]](_.head)
+  def headLens[E, S, N]: Lens[Tree[Lm[E, S]], Lm[E, S]] = GenLens[Tree[Lm[E, S]]](_.head)
 
-  def nodeLens[S]: Lens[NodeState[S, Lm[S]], El] = treeLens.composeLens(headLens[S, Lm[S]]).composeLens(Lm.nodeLens)
+  def nodeLens[E, S]: Lens[NodeState[S, Lm[E, S]], El] =
+    treeLens
+      .composeLens(headLens[E, S, Lm[E, S]])
+      .composeLens(Lm.nodeLens)
 }
 
-case class Compilation[S](state: S, env: Env, log: Vector[String])
+case class Compilation[E, S](state: S, env: E, log: Vector[String])
 
 object CompileS
 {
-  type CompileS[S, A] = State[Compilation[S], A]
+  type CompileS[E, S, A] = State[Compilation[E, S], A]
 
-  def envLens[S]: Lens[Compilation[S], Env] =
-    GenLens[Compilation[S]](_.env)
+  def envLens[E, S]: Lens[Compilation[E, S], E] =
+    GenLens[Compilation[E, S]](_.env)
 
-  def liftF[S, A](fa: Eval[A]): CompileS[S, A] =
+  def liftF[E, S, A](fa: Eval[A]): CompileS[E, S, A] =
     StateT.liftF(fa)
 
-  def modifyEnv[S](f: Env => Env): CompileS[S, Unit] =
+  def modifyEnv[E, S](f: E => E): CompileS[E, S, Unit] =
     State.modify(envLens.modify(f))
+
+  def modifyEnvF[E, S](f: E => Eval[E]): CompileS[E, S, Unit] =
+    StateT.modifyF { s =>
+      for {
+        e <- f(s.env)
+      } yield s.copy(env = e)
+    }
 }

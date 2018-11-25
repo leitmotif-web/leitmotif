@@ -1,7 +1,9 @@
 package leitmotif
 
+import cats.Eval
 import monocle.Lens
 import monocle.macros.GenLens
+import monocle.macros.syntax.lens._
 
 case class Style()
 
@@ -44,38 +46,56 @@ case class SubEnv(count: Int)
 
 case class Env(path: PathEnv, sub: SubEnv)
 
-case class Lm[S](node: El, preTrans: List[NodeS[S, Lm[S], Unit]], postTrans: List[NodeS[S, Lm[S], Unit]])
+object Env
 {
-  def pre(f: NodeS[S, Lm[S], Unit]): Lm[S] =
+  def recordSubCount[N]: (Env, Tree[N]) => Eval[Env] =
+    (env, tree) =>
+      for {
+        tail <- tree.tail
+      } yield env.lens(_.sub.count).modify(_ + tail.length)
+
+  def defaultTrans[N]: EnvTransformations[Env] =
+    new EnvTransformations[Env] {
+      def pre[N]: List[(Env, Tree[N]) => Eval[Env]] =
+        List()
+
+      def post[N]: List[(Env, Tree[N]) => Eval[Env]] =
+        List(recordSubCount[N])
+    }
+}
+
+case class Lm[E, S](node: El, preTrans: List[NodeS[E, S, Lm[E, S], Unit]], postTrans: List[NodeS[E, S, Lm[E, S], Unit]])
+{
+  def pre(f: NodeS[E, S, Lm[E, S], Unit]): Lm[E, S] =
     copy(preTrans = f :: preTrans)
 
-  def post(f: NodeS[S, Lm[S], Unit]): Lm[S] =
+  def post(f: NodeS[E, S, Lm[E, S], Unit]): Lm[E, S] =
     copy(postTrans = f :: postTrans)
 }
 
 object Lm
 extends LmInstances
 {
-  def default[S](node: El): Lm[S] =
+  def default[E, S](node: El): Lm[E, S] =
     Lm(node, Nil, Nil)
 
-  def plain[S](tag: String): Lm[S] =
+  def plain[E, S](tag: String): Lm[E, S] =
     default(El.tag(tag))
 
-  def withClass[S](tag: String, cls: String): Lm[S] =
+  def withClass[E, S](tag: String, cls: String): Lm[E, S] =
     default(El.tag(tag).copy(attrs = Attrs(Map("class" -> cls))))
 
-  def nodeLens[S]: Lens[Lm[S], El] = GenLens[Lm[S]](_.node)
+  def nodeLens[E, S]: Lens[Lm[E, S], El] = GenLens[Lm[E, S]](_.node)
 }
 
 trait LmInstances
 {
-  implicit def Transformations_Lm[S]: Transformations[S, Lm[S]] =
-    new Transformations[S, Lm[S]] {
-      def pre(a: Lm[S]): List[NodeS[S, Lm[S], Unit]] =
+  implicit def Transformations_Lm[E, S]: NodeTransformations[E, S, Lm[E, S]] =
+    new NodeTransformations[E, S, Lm[E, S]] {
+      def pre(a: Lm[E, S]): List[NodeS[E, S, Lm[E, S], Unit]] =
         a.preTrans
 
-      def post(a: Lm[S]): List[NodeS[S, Lm[S], Unit]] =
+      def post(a: Lm[E, S]): List[NodeS[E, S, Lm[E, S], Unit]] =
         a.postTrans
     }
 }
