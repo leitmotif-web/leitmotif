@@ -32,27 +32,27 @@ object Leitmotif
   def node[S](head: Lm[S])(tail: Tree[Lm[S]]*): Tree[Lm[S]] =
     Cofree(head, Eval.now(tail.toList))
 
-  def inspectS[S, A](f: S => A): NodeS[S, A] =
-    RWS.inspect(f compose NodeState.sLens.get)
+  def inspectS[S, N, A](f: S => A): NodeS[S, N, A] =
+    RWS.inspect(f compose NodeS.sLens.get)
 
-  def modifyS[S](f: S => S): NodeS[S, Unit] =
-    RWS.modify(NodeState.sLens.modify(f))
+  def modifyS[S, N](f: S => S): NodeS[S, N, Unit] =
+    RWS.modify(NodeS.sLens.modify(f))
 
-  def modifyEl[S](f: El => El): NodeS[S, Unit] =
-    RWS.modify(NodeState.nodeLens.modify(f))
+  def modifyEl[S](f: El => El): NodeS[S, Lm[S], Unit] =
+    RWS.modify(NodeS.nodeLens.modify(f))
 
-  def inspectTreeF[S, A](f: Tree[Lm[S]] => Eval[A]): NodeS[S, A] =
-    IRWST.inspectF(f compose NodeState.treeLens.get)
+  def inspectTreeF[S, N, A](f: Tree[N] => Eval[A]): NodeS[S, N, A] =
+    IRWST.inspectF(f compose NodeS.treeLens.get)
 
-  def modifyTree[S](f: Tree[Lm[S]] => Tree[Lm[S]]): NodeS[S, Unit] =
-    RWS.modify(NodeState.treeLens.modify(f))
+  def modifyTree[S, N](f: Tree[N] => Tree[N]): NodeS[S, N, Unit] =
+    RWS.modify(NodeS.treeLens.modify(f))
 
-  def el[S]: NodeS[S, El] =
-    RWS.inspect(NodeState.nodeLens.get)
+  def el[S]: NodeS[S, Lm[S], El] =
+    RWS.inspect(NodeS.nodeLens.get)
 
-  def ask[S]: NodeS[S, Env] =
+  def ask[S, N]: NodeS[S, N, Env] =
     RWS.ask
 
-  def tail[S]: NodeS[S, List[Tree[Lm[S]]]] =
+  def tail[S, N]: NodeS[S, N, List[Tree[N]]] =
     inspectTreeF(_.tail)
 }

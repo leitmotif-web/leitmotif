@@ -44,29 +44,12 @@ case class SubEnv(count: Int)
 
 case class Env(path: PathEnv, sub: SubEnv)
 
-sealed trait Trans[S]
-
-object Trans
+case class Lm[S](node: El, preTrans: List[NodeS[S, Lm[S], Unit]], postTrans: List[NodeS[S, Lm[S], Unit]])
 {
-  case class Rec[S]()
-  extends Trans[S]
-
-  case class PostRec[S]()
-  extends Trans[S]
-
-  case class Path[S](f: NodeS[S, Unit])
-  extends Trans[S]
-
-  case class Sub[S](f: NodeS[S, Unit])
-  extends Trans[S]
-}
-
-case class Lm[S](node: El, preTrans: List[NodeS[S, Unit]], postTrans: List[NodeS[S, Unit]])
-{
-  def pre(f: NodeS[S, Unit]): Lm[S] =
+  def pre(f: NodeS[S, Lm[S], Unit]): Lm[S] =
     copy(preTrans = f :: preTrans)
 
-  def post(f: NodeS[S, Unit]): Lm[S] =
+  def post(f: NodeS[S, Lm[S], Unit]): Lm[S] =
     copy(postTrans = f :: postTrans)
 }
 

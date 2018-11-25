@@ -5,19 +5,19 @@ import cats.data.{RWS, State, StateT}
 import monocle.Lens
 import monocle.macros.GenLens
 
-case class NodeState[S](s: S, tree: Tree[Lm[S]])
+case class NodeState[S, N](s: S, tree: Tree[N])
 
-object NodeState
+object NodeS
 {
-  type NodeS[S, A] = RWS[Env, Vector[String], NodeState[S], A]
+  type NodeS[S, N, A] = RWS[Env, Vector[String], NodeState[S, N], A]
 
-  def treeLens[S]: Lens[NodeState[S], Tree[Lm[S]]] = GenLens[NodeState[S]](_.tree)
+  def treeLens[S, N]: Lens[NodeState[S, N], Tree[N]] = GenLens[NodeState[S, N]](_.tree)
 
-  def sLens[S]: Lens[NodeState[S], S] = GenLens[NodeState[S]](_.s)
+  def sLens[S, N]: Lens[NodeState[S, N], S] = GenLens[NodeState[S, N]](_.s)
 
-  def headLens[S]: Lens[Tree[Lm[S]], Lm[S]] = GenLens[Tree[Lm[S]]](_.head)
+  def headLens[S, N]: Lens[Tree[Lm[S]], Lm[S]] = GenLens[Tree[Lm[S]]](_.head)
 
-  def nodeLens[S]: Lens[NodeState[S], El] = treeLens.composeLens(headLens[S]).composeLens(Lm.nodeLens)
+  def nodeLens[S]: Lens[NodeState[S, Lm[S]], El] = treeLens.composeLens(headLens[S, Lm[S]]).composeLens(Lm.nodeLens)
 }
 
 case class Compilation[S](state: S, env: Env, log: Vector[String])

@@ -10,7 +10,7 @@ import CompileS.CompileS
 
 object Compile
 {
-  def consumer[S](trans: List[NodeS[S, Unit]])(tree0: Tree[Lm[S]]): CompileS[S, Tree[Lm[S]]] =
+  def consumer[S, N](trans: List[NodeS[S, N, Unit]])(tree0: Tree[N]): CompileS[S, Tree[N]] =
     StateT {
       case Compilation(state0, env, log0) =>
         for {
