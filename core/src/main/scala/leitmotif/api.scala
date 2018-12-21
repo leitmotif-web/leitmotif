@@ -15,7 +15,10 @@ object RenderText
   }
 
   def level[E, S](prefix: String)(tree: Tree[Lm[E, S]]): Eval[List[String]] =
-    tree.tail.flatMap(_.flatTraverse(level(s"$prefix- "))).map(s"$prefix${node(tree.head.node)}" :: _)
+    for {
+      tail <- tree.tail
+      sub <- tail.flatTraverse(level(s"$prefix- "))
+    } yield s"$prefix${node(tree.head.node)}" :: sub
 }
 
 object Render
