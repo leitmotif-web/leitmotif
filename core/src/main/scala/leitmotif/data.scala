@@ -5,14 +5,20 @@ import monocle.Lens
 import monocle.macros.GenLens
 import monocle.macros.syntax.lens._
 
-case class Style()
+case class Style(static: Map[String, String])
+
+object Style
+{
+  def empty: Style =
+    Style(Map.empty)
+}
 
 case class Attrs(attrs: Map[String, String])
 
 object Attrs
 {
   def empty: Attrs =
-    Attrs(Map())
+    Attrs(Map.empty)
 }
 
 sealed trait ElMeta
@@ -35,7 +41,7 @@ case class El(name: String, style: Style, attrs: Attrs, meta: ElMeta)
 object El
 {
   def tag(name: String): El =
-    El(name, Style(), Attrs.empty, ElMeta.Regular())
+    El(name, Style.empty, Attrs.empty, ElMeta.Regular())
 }
 
 case class EnvPre()
@@ -71,6 +77,9 @@ case class Lm[E, S](node: El, preTrans: List[NodeS[E, S, Lm[E, S], Unit]], postT
 
   def post(f: NodeS[E, S, Lm[E, S], Unit]): Lm[E, S] =
     copy(postTrans = f :: postTrans)
+
+  def style(styles: (String, String)*): Lm[E, S] =
+    copy(node = node.copy(style = node.style.copy(static = node.style.static ++ styles)))
 }
 
 object Lm
