@@ -6,6 +6,7 @@ import monocle.macros.syntax.lens._
 import utest._
 
 import Tags._
+import ReferenceData._
 
 object Tags
 {
@@ -16,8 +17,7 @@ object Tags
     Leitmotif.node(Lm.withClass("div", cls))(tail: _*)
 }
 
-object MainSpec
-extends Spec
+object ReferenceData
 {
   case class Path(headline: Int)
   case class Sub(count: Int)
@@ -25,14 +25,14 @@ extends Spec
 
   type Node = Lm[Env, MainS]
   type Tree = leitmotif.Tree[Node]
-  type LmNodeS[A] = NodeS[Env, MainS, Lm[Env, MainS], A]
+  type LmNodeS[A] = NodeS[Env, MainS, Node, A]
 
   def recordHeadline: LmNodeS[Unit] =
     Leitmotif.modifyS((_: MainS).lens(_.path.headline).modify(_ + 1))
 
   def adaptHeadline: LmNodeS[Unit] =
     for {
-      headline <- Leitmotif.inspectS[Env, MainS, Lm[Env, MainS], Int](_.path.headline)
+      headline <- Leitmotif.inspectS[Env, MainS, Node, Int](_.path.headline)
       _ <- Leitmotif.modifyEl {
         case node @ El(name, _, _, _) =>
           val name1 = if (headline >= 1 && name == "h1") "h2" else name
@@ -61,20 +61,26 @@ extends Spec
   def innerShellCore: LmNodeS[Unit] =
     for {
       tail <- Leitmotif.tail
-      _ <- Leitmotif.modifyTree[Env, MainS, Lm[Env, MainS]](
+      _ <- Leitmotif.modifyTree[Env, MainS, Node](
         _.copy(tail = Eval.now(List(divWithClass("shell")(divWithClass("core")(tail: _*)))))
       )
     } yield ()
 
   def tree: Tree =
     Leitmotif.node(
-      Lm.plain("section").pre(recordHeadline).post(subCountClass).post(shellCore)
+      Lm.plain("section").pre(recordHeadline).post(subCountClass).post(shellCore).style("text-align" -> "right")
     )(
       Leitmotif.node(Lm.plain("h1").pre(adaptHeadline).post(innerShellCore))(
         div(div(div()), div(div()))
       )
     )
 
+  def generateStyle(node: Node)
+}
+
+object MainSpec
+extends Spec
+{
   def reference = {
     val result = Compile.default(Env(PathEnv(), SubEnv(0)), MainS(Path(0), Sub(0)))(tree)
     val (_, tree1) = result.value
@@ -91,4 +97,17 @@ extends Spec
   }
 
   def tests = Tests("adapt headline to section nesting, count children, inject shell/core" - reference)
+}
+
+object StyleSpec
+extends Spec
+{
+  def style = {
+    val result = Compile.default(Env(PathEnv(), SubEnv(0)), MainS(Path(0), Sub(0)))(tree)
+    val (_, tree1) = result.value
+    val sheet = AggregateStyle(tree1)(generateStyle)
+    println(sheet)
+  }
+
+  def tests = Tests("aggregate style content" - style)
 }
