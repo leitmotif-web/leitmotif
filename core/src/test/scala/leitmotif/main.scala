@@ -22,7 +22,7 @@ object ReferenceData
   case class Path(headline: Int)
   case class Sub(count: Int)
   case class MainS(path: Path, sub: Sub)
-  case class StyleEntry()
+  case class StyleEntry(blocks: List[StyleBlock])
 
   type Node = Lm[Env, MainS, StyleEntry]
   type Tree = leitmotif.Tree[Node]
@@ -71,7 +71,7 @@ object ReferenceData
     Leitmotif.node(
       Lm.plain("section").pre(recordHeadline).post(subCountClass).post(shellCore).style("text-align" -> "right")
     )(
-      Leitmotif.node(Lm.plain("h1").pre(adaptHeadline).post(innerShellCore))(
+      Leitmotif.node(Lm.plain("h1").pre(adaptHeadline).post(innerShellCore).style("display" -> "flex"))(
         div(div(div()), div(div()))
       )
     )
@@ -79,9 +79,9 @@ object ReferenceData
   def generateStyle: LmNodeS[Unit] =
     for {
       el <- Leitmotif.getEl
-    } yield {
-      println(el)
-    }
+      rules = el.style.static.toList.map { case (k, v) => StyleRule(k, v) }
+      _ <- Leitmotif.tell(if (rules.isEmpty) Vector.empty else Vector(StyleEntry(List(StyleBlock(rules)))))
+    } yield ()
 }
 
 object MainSpec
@@ -89,7 +89,7 @@ extends Spec
 {
   def reference = {
     val result = Compile.default(Env(PathEnv(), SubEnv(0)), MainS(Path(0), Sub(0)))(tree)
-    val (_, tree1) = result.value
+    val (_, tree1, _) = result.value
     println(Render.text(tree1))
     val cls = tree1.head.node.attr("class")
     assert(cls == Some("sub-6 shell"))
@@ -110,10 +110,10 @@ extends Spec
 {
   def style = {
     val result = Compile.default(Env(PathEnv(), SubEnv(0)), MainS(Path(0), Sub(0)))(tree)
-    val (_, tree1) = result.value
+    val (_, tree1, _) = result.value
     val sheet = AggregateStyle(Env(PathEnv(), SubEnv(0)), MainS(Path(0), Sub(0)))(tree1)(generateStyle)
-    val (_, tree2) = sheet.value
-    println(tree2)
+    val l = sheet.value
+    println(l)
   }
 
   def tests = Tests("aggregate style content" - style)

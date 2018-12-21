@@ -24,6 +24,8 @@ object AggregateStyle
   (tree: Tree[N])
   (gen: NodeS[Env, S, L, N, Unit])
   (implicit nodeTrans: NodeTransformations[Env, S, L, N])
-  : Eval[(S, Tree[N])] =
-    Compile.default(env, s)(tree)(trans(nodeTrans)(gen))
+  : Eval[Vector[L]] =
+    for {
+      (_, _, style) <- Compile.default(env, s)(tree)(trans(nodeTrans)(gen))
+    } yield style
 }

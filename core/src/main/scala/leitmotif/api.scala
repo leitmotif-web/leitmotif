@@ -59,6 +59,9 @@ object Leitmotif
   def ask[E, S, L, N]: NodeS[E, S, L, N, E] =
     RWS.ask[E, Vector[L], NodeState[S, N]]
 
+  def tell[E, S, L, N](entry: Vector[L]): NodeS[E, S, L, N, Unit] =
+    RWS.tell[E, Vector[L], NodeState[S, N]](entry)
+
   def tail[E, S, L, N]: NodeS[E, S, L, N, List[Tree[N]]] =
     inspectTreeF(_.tail)
 }

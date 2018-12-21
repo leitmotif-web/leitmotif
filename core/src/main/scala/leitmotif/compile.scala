@@ -53,15 +53,15 @@ object Compile
   (tree: Tree[N])
   (envTrans: EnvTransformations[E])
   (implicit nodeTrans: NodeTransformations[E, S, L, N])
-  : Eval[(S, Tree[N])] =
+  : Eval[(S, Tree[N], Vector[L])] =
     for {
-      (Compilation(s1, _, _), tree1) <- run(nodeTrans, envTrans)(tree).run(Compilation(s, env, Vector.empty))
-    } yield (s1, tree1)
+      (Compilation(s1, _, log), tree1) <- run(nodeTrans, envTrans)(tree).run(Compilation(s, env, Vector.empty))
+    } yield (s1, tree1, log)
 
   def default[S, L, N]
   (env: Env, s: S)
   (tree: Tree[N])
   (implicit nodeTrans: NodeTransformations[Env, S, L, N])
-  : Eval[(S, Tree[N])] =
+  : Eval[(S, Tree[N], Vector[L])] =
     apply(env, s)(tree)(Env.defaultTrans)
 }
