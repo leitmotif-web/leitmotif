@@ -70,41 +70,45 @@ object Env
     }
 }
 
-case class Lm[E, S](node: El, preTrans: List[NodeS[E, S, Lm[E, S], Unit]], postTrans: List[NodeS[E, S, Lm[E, S], Unit]])
+case class Lm[E, S, L](
+  node: El,
+  preTrans: List[NodeS[E, S, L, Lm[E, S, L], Unit]],
+  postTrans: List[NodeS[E, S, L, Lm[E, S, L], Unit]],
+)
 {
-  def pre(f: NodeS[E, S, Lm[E, S], Unit]): Lm[E, S] =
+  def pre(f: NodeS[E, S, L, Lm[E, S, L], Unit]): Lm[E, S, L] =
     copy(preTrans = f :: preTrans)
 
-  def post(f: NodeS[E, S, Lm[E, S], Unit]): Lm[E, S] =
+  def post(f: NodeS[E, S, L, Lm[E, S, L], Unit]): Lm[E, S, L] =
     copy(postTrans = f :: postTrans)
 
-  def style(styles: (String, String)*): Lm[E, S] =
+  def style(styles: (String, String)*): Lm[E, S, L] =
     copy(node = node.copy(style = node.style.copy(static = node.style.static ++ styles)))
 }
 
 object Lm
 extends LmInstances
 {
-  def default[E, S](node: El): Lm[E, S] =
+  def default[E, S, L](node: El): Lm[E, S, L] =
     Lm(node, Nil, Nil)
 
-  def plain[E, S](tag: String): Lm[E, S] =
+  def plain[E, S, L](tag: String): Lm[E, S, L] =
     default(El.tag(tag))
 
-  def withClass[E, S](tag: String, cls: String): Lm[E, S] =
+  def withClass[E, S, L](tag: String, cls: String): Lm[E, S, L] =
     default(El.tag(tag).copy(attrs = Attrs(Map("class" -> cls))))
 
-  def nodeLens[E, S]: Lens[Lm[E, S], El] = GenLens[Lm[E, S]](_.node)
+  def nodeLens[E, S, L]: Lens[Lm[E, S, L], El] = GenLens[Lm[E, S, L]](_.node)
 }
 
 trait LmInstances
 {
-  implicit def Transformations_Lm[E, S]: NodeTransformations[E, S, Lm[E, S]] =
-    new NodeTransformations[E, S, Lm[E, S]] {
-      def pre(a: Lm[E, S]): List[NodeS[E, S, Lm[E, S], Unit]] =
+  implicit def Transformations_Lm[E, S, L]: NodeTransformations[E, S, L, Lm[E, S, L]] =
+    new NodeTransformations[E, S, L, Lm[E, S, L]] {
+      def pre(a: Lm[E, S, L]): List[NodeS[E, S, L, Lm[E, S, L], Unit]] =
         a.preTrans
 
-      def post(a: Lm[E, S]): List[NodeS[E, S, Lm[E, S], Unit]] =
+      def post(a: Lm[E, S, L]): List[NodeS[E, S, L, Lm[E, S, L], Unit]] =
         a.postTrans
     }
 }

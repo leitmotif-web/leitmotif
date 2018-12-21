@@ -10,10 +10,10 @@ import ReferenceData._
 
 object Tags
 {
-  def div[S](tail: Tree[Lm[Env, S]]*): Tree[Lm[Env, S]] =
+  def div[S, L](tail: Tree[Lm[Env, S, L]]*): Tree[Lm[Env, S, L]] =
     Leitmotif.node(Lm.plain("div"))(tail: _*)
 
-  def divWithClass[S](cls: String)(tail: Tree[Lm[Env, S]]*): Tree[Lm[Env, S]] =
+  def divWithClass[S, L](cls: String)(tail: Tree[Lm[Env, S, L]]*): Tree[Lm[Env, S, L]] =
     Leitmotif.node(Lm.withClass("div", cls))(tail: _*)
 }
 
@@ -22,17 +22,18 @@ object ReferenceData
   case class Path(headline: Int)
   case class Sub(count: Int)
   case class MainS(path: Path, sub: Sub)
+  case class StyleEntry()
 
-  type Node = Lm[Env, MainS]
+  type Node = Lm[Env, MainS, StyleEntry]
   type Tree = leitmotif.Tree[Node]
-  type LmNodeS[A] = NodeS[Env, MainS, Node, A]
+  type LmNodeS[A] = NodeS[Env, MainS, StyleEntry, Node, A]
 
   def recordHeadline: LmNodeS[Unit] =
     Leitmotif.modifyS((_: MainS).lens(_.path.headline).modify(_ + 1))
 
   def adaptHeadline: LmNodeS[Unit] =
     for {
-      headline <- Leitmotif.inspectS[Env, MainS, Node, Int](_.path.headline)
+      headline <- Leitmotif.inspectS[Env, MainS, StyleEntry, Node, Int](_.path.headline)
       _ <- Leitmotif.modifyEl {
         case node @ El(name, _, _, _) =>
           val name1 = if (headline >= 1 && name == "h1") "h2" else name
@@ -61,7 +62,7 @@ object ReferenceData
   def innerShellCore: LmNodeS[Unit] =
     for {
       tail <- Leitmotif.tail
-      _ <- Leitmotif.modifyTree[Env, MainS, Node](
+      _ <- Leitmotif.modifyTree[Env, MainS, StyleEntry, Node](
         _.copy(tail = Eval.now(List(divWithClass("shell")(divWithClass("core")(tail: _*)))))
       )
     } yield ()
@@ -75,7 +76,12 @@ object ReferenceData
       )
     )
 
-  def generateStyle(node: Node)
+  def generateStyle: LmNodeS[Unit] =
+    for {
+      el <- Leitmotif.getEl
+    } yield {
+      println(el)
+    }
 }
 
 object MainSpec
@@ -105,8 +111,9 @@ extends Spec
   def style = {
     val result = Compile.default(Env(PathEnv(), SubEnv(0)), MainS(Path(0), Sub(0)))(tree)
     val (_, tree1) = result.value
-    val sheet = AggregateStyle(tree1)(generateStyle)
-    println(sheet)
+    val sheet = AggregateStyle(Env(PathEnv(), SubEnv(0)), MainS(Path(0), Sub(0)))(tree1)(generateStyle)
+    val (_, tree2) = sheet.value
+    println(tree2)
   }
 
   def tests = Tests("aggregate style content" - style)

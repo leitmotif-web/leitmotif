@@ -7,10 +7,10 @@ import cats.implicits._
 
 import CompileS.CompileS
 
-trait NodeTransformations[E, S, N]
+trait NodeTransformations[E, S, L, N]
 {
-  def pre(a: N): List[NodeS[E, S, N, Unit]]
-  def post(a: N): List[NodeS[E, S, N, Unit]]
+  def pre(a: N): List[NodeS[E, S, L, N, Unit]]
+  def post(a: N): List[NodeS[E, S, L, N, Unit]]
 }
 
 trait EnvTransformations[E]
@@ -21,7 +21,7 @@ trait EnvTransformations[E]
 
 object Compile
 {
-  def consumer[E, S, N](trans: List[NodeS[E, S, N, Unit]])(tree0: Tree[N]): CompileS[E, S, Tree[N]] =
+  def consumer[E, S, L, N](trans: List[NodeS[E, S, L, N, Unit]])(tree0: Tree[N]): CompileS[E, S, L, Tree[N]] =
     StateT {
       case Compilation(state0, env, log0) =>
         for {
@@ -29,13 +29,13 @@ object Compile
         } yield (Compilation(state1, env, log0 ++ log1), tree1)
     }
 
-  def transEnv[E, S, N](trans: List[(E, Tree[N]) => Eval[E]])(tree: Tree[N]): CompileS[E, S, Unit] =
+  def transEnv[E, S, L, N](trans: List[(E, Tree[N]) => Eval[E]])(tree: Tree[N]): CompileS[E, S, L, Unit] =
     CompileS.modifyEnvF(env => trans.foldM(env)((z, a) => a(z, tree)))
 
-  def run[E, S, N](
-    nodeTrans: NodeTransformations[E, S, N],
+  def run[E, S, L, N](
+    nodeTrans: NodeTransformations[E, S, L, N],
     envTrans: EnvTransformations[E],
-  ): Tree[N] => CompileS[E, S, Tree[N]] = {
+  ): Tree[N] => CompileS[E, S, L, Tree[N]] = {
     case tree @ Cofree(head, _) =>
       for {
         tree1 <- consumer(nodeTrans.pre(head))(tree)
@@ -48,20 +48,20 @@ object Compile
       } yield tree3
   }
 
-  def apply[E, S, N]
+  def apply[E, S, L, N]
   (env: E, s: S)
   (tree: Tree[N])
   (envTrans: EnvTransformations[E])
-  (implicit nodeTrans: NodeTransformations[E, S, N])
+  (implicit nodeTrans: NodeTransformations[E, S, L, N])
   : Eval[(S, Tree[N])] =
     for {
       (Compilation(s1, _, _), tree1) <- run(nodeTrans, envTrans)(tree).run(Compilation(s, env, Vector.empty))
     } yield (s1, tree1)
 
-  def default[S, N]
+  def default[S, L, N]
   (env: Env, s: S)
   (tree: Tree[N])
-  (implicit nodeTrans: NodeTransformations[Env, S, N])
+  (implicit nodeTrans: NodeTransformations[Env, S, L, N])
   : Eval[(S, Tree[N])] =
     apply(env, s)(tree)(Env.defaultTrans)
 }
