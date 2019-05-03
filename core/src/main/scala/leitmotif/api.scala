@@ -4,6 +4,7 @@ import cats.Eval
 import cats.data.{RWS, IRWST}
 import cats.free.Cofree
 import cats.implicits._
+import scalatags.Text.all._
 
 object RenderText
 {
@@ -21,6 +22,22 @@ object RenderText
     } yield s"$prefix${node(tree.head.node)}" :: sub
 }
 
+object RenderScalaTags
+{
+  def node[S]: El => Tag = {
+    case El(n, _, attrs, ElMeta.Regular()) =>
+      tag(n)(cls := attrs.attrs.getOrElse("class", ""))
+    case El(_, _, _, ElMeta.Pseudo()) =>
+      div()
+  }
+
+  def level[E, S](prefix: String)(tree: Tree[Lm[E, S]]): Eval[Tag] =
+    for {
+      tail <- tree.tail
+      sub <- tail.traverse(level(s"$prefix- "))
+    } yield node(tree.head.node).apply(sub)
+}
+
 object Render
 {
   def apply[E, S](tree: Tree[Lm[E, S]]): Tree[El] =
@@ -28,6 +45,9 @@ object Render
 
   def text[E, S](tree: Tree[Lm[E, S]]): String =
     RenderText.level("")(tree).value.mkString("\n")
+
+  def scalatags[E, S](tree: Tree[Lm[E, S]]): Tag =
+    RenderScalaTags.level("")(tree).value
 }
 
 object Leitmotif

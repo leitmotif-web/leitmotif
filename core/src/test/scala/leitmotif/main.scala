@@ -78,7 +78,7 @@ extends Spec
   def reference = {
     val result = Compile.default(Env(PathEnv(), SubEnv(0)), MainS(Path(0), Sub(0)))(tree)
     val (_, tree1) = result.value
-    println(Render.text(tree1))
+    println(Render.scalatags(tree1))
     val cls = tree1.head.node.attr("class")
     assert(cls == Some("sub-6 shell"))
     val name =
